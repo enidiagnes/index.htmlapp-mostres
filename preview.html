@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestió Mostres Cloud</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "POSA_LA_TEVA_KEY",
+      authDomain: "POSA_DOMINI",
+      projectId: "POSA_PROJECT_ID",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.afegir = async function() {
+      let m = {
+        id: document.getElementById("id").value,
+        tipus: document.getElementById("tipus").value,
+        data: document.getElementById("data").value,
+        hora: document.getElementById("hora").value,
+        historia: document.getElementById("historia").value
+      };
+
+      await addDoc(collection(db, "mostres"), m);
+      carregar();
+    }
+
+    window.carregar = async function() {
+      let div = document.getElementById("llista");
+      div.innerHTML = "";
+
+      const querySnapshot = await getDocs(collection(db, "mostres"));
+      querySnapshot.forEach(doc => {
+        let m = doc.data();
+        let url = window.location.href.split("?")[0] + "?id=" + m.id;
+
+        div.innerHTML += `
+          <div class="card">
+            <b>${m.id}</b><br>
+            Tipus: ${m.tipus}<br>
+            Data: ${m.data}<br>
+            Hora: ${m.hora}<br>
+            Nº història: ${m.historia}<br>
+            <canvas id="qr-${m.id}"></canvas>
+          </div>
+        `;
+
+        setTimeout(() => {
+          QRCode.toCanvas(document.getElementById("qr-" + m.id), url);
+        }, 100);
+      });
+    }
+
+    window.onload = () => {
+      carregar();
+      iniciarScanner();
+    }
+  </script>
+
+  <style>
+    body { font-family: Arial; margin: 0; background:#eef2f7;}
+    header { background:#1e88e5; color:white; padding:15px; text-align:center;}
+    .container { padding:15px;}
+    input, button { margin:5px 0; padding:10px; width:100%;}
+    .card { background:white; padding:10px; margin:10px 0;}
+  </style>
+</head>
+
+<body>
+
+<header>🧪 Mostres Cloud</header>
+
+<div class="container">
+  <input id="id" placeholder="ID">
+  <input id="tipus" placeholder="Tipus">
+  <input id="data" type="date">
+  <input id="hora" type="time">
+  <input id="historia" placeholder="Història pacient">
+  <button onclick="afegir()">Afegir</button>
+
+  <h3>Escanejar QR</h3>
+  <div id="reader"></div>
+
+  <h3>Mostres</h3>
+  <div id="llista"></div>
+</div>
+
+<script>
+function iniciarScanner() {
+  const scanner = new Html5Qrcode("reader");
+
+  scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    qr => window.location.href = qr
+  );
+}
+</script>
+
+</body>
+</html>
